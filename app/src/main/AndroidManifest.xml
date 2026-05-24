@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Contacts">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.contacts.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Contacts">
