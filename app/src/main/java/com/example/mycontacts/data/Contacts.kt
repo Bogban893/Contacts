@@ -17,49 +17,32 @@ class ContactsRepository(private val contentResolver: ContentResolver) {
             ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
             ContactsContract.CommonDataKinds.Phone.NUMBER,
-            ContactsContract.CommonDataKinds.Phone.TYPE
+            ContactsContract.CommonDataKinds.Phone.IS_PRIMARY
         )
         val selection =
             "${ContactsContract.CommonDataKinds.Phone.TYPE} = ${ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE}"
 
-        val cursor = contentResolver.query(uri, projection, selection, null, null)
+        val sortOrder = "${ContactsContract.CommonDataKinds.Phone.IS_PRIMARY} DESC"
+        val cursor = contentResolver.query(uri, projection, selection, null, sortOrder)
+        val seenIds = mutableSetOf<Int>()
+
         cursor?.use {
             val idCol = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-            val nameCol =
-                it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val nameCol = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
             val numberCol = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+
             while (it.moveToNext()) {
+                val contactId = it.getInt(idCol)
+                if (contactId in seenIds) continue
+
+                seenIds.add(contactId)
                 res.add(
                     Contact(
-                        id = it.getInt(idCol),
+                        id = contactId,
                         name = it.getString(nameCol),
                         number = it.getString(numberCol)
                     )
                 )
-            }
-        }
-
-
-        val mobileIds = res.map { it.id }.toSet()
-        val fallbackCursor = contentResolver.query(uri, projection, null, null, null)
-        fallbackCursor?.use {
-            val idCol = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-            val nameCol =
-                it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-            val numberCol = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
-            val seen = mutableSetOf<Int>()
-            while (it.moveToNext()) {
-                val id = it.getInt(idCol)
-                if (id !in mobileIds && id !in seen) {
-                    seen.add(id)
-                    res.add(
-                        Contact(
-                            id = id,
-                            name = it.getString(nameCol),
-                            number = it.getString(numberCol)
-                        )
-                    )
-                }
             }
         }
 
